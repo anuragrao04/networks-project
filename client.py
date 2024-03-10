@@ -2,18 +2,22 @@ import socket
 import pickle
 import ssl 
 def send_function(function, args_list, host, port):
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-    s = socket.create_connection((host, port))
-    secureSocket = context.wrap_socket(s, server_hostname=host)
-    data = pickle.dumps((function, args_list))
-    secureSocket.sendall(data)
-    print("sent")
-    received = secureSocket.recv(102400)
-    secureSocket.close()
-    s.close()
-    return received
+    try:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        s = socket.create_connection((host, port))
+        secureSocket = context.wrap_socket(s, server_hostname=host)
+        data = pickle.dumps((function, args_list))
+        secureSocket.sendall(data)
+        print("sent")
+        received = secureSocket.recv(102400)
+        secureSocket.close()
+        s.close()
+        return received
+    except Exception as e:
+        print("Error occured in send_function. Make sure server is up: ", e)
+        return None
 
 
 if __name__ == '__main__':
@@ -32,5 +36,6 @@ print(add(int(sys.argv[1]), int(sys.argv[2])))
         print(args)
     print("sending now...")
     response = send_function(program_text, args_list, 'localhost', 6969)
-    print("Received: ", pickle.loads(response))
+    if(response != None):
+        print("Received: ", pickle.loads(response))
 

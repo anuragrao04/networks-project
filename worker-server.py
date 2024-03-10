@@ -2,6 +2,7 @@ import socket
 import pickle
 import os
 import sys
+import ssl
 
 
 HOST = sys.argv[1]
@@ -28,8 +29,11 @@ def handle_client(conn, addr):
 
 while(True):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile="./ssl/worker_server/certificate.pem", keyfile="./ssl/worker_server/key.pem")
         s.bind((HOST, PORT))
         s.listen()
+        secureSocket = context.wrap_socket(s, server_side = True)
         while(True):
-            conn, addr = s.accept()
+            conn, addr = secureSocket.accept()
             handle_client(conn, addr)

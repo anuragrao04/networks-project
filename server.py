@@ -17,21 +17,30 @@ def handle_client(conn, addr):
         result_sockets = []
         results = []
         for i, arg in enumerate(args_list):
-            worker_host, worker_port = WORKER_HOSTS[i % len(WORKER_HOSTS)].split(':')
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((worker_host, int(worker_port)))
-                data = pickle.dumps((program, arg))
-                s.sendall(data)
-                result_sockets.append(s)
-            except Exception as e:
-                print(f"Error connecting to worker{i % len(WORKER_HOSTS)}: ", e)
+            while(True):
+                worker_host, worker_port = WORKER_HOSTS[i % len(WORKER_HOSTS)].split(':')
+                try:
+                    context = ssl.create_default_context()
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
+                    s = socket.create_connection((worker_host, int(worker_port)))
+                    secureSocket = context.wrap_socket(s, server_hostname=worker_host)
+                    data = pickle.dumps((program, arg))
+                    secureSocket.sendall(data)
+                    result_sockets.append((secureSocket, s))
+                    break
+                except Exception as e:
+                    print(f"Error connecting to worker{i % len(WORKER_HOSTS)}: ", e)
+                    i += 1 # try the next worker
+                    continue
 
 
 
-        for socki in result_sockets:
-            data = socki.recv(102400)
+
+        for securesocki, socki in result_sockets:
+            data = securesocki.recv(102400)
             results.append(pickle.loads(data))
+            securesocki.close()
             socki.close()
 
         print("Sending results back to client: ", results)
